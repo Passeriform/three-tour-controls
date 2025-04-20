@@ -1,0 +1,41 @@
+{
+    "compilerOptions": {
+        /* Build properties */
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "lib": [
+            "ESNext",
+            "DOM"
+        ],
+
+        "declaration": true,
+        "isolatedModules": true,
+        "moduleDetection": "force",
+
+        /* Path and resolution */
+        "baseUrl": ".",
+        "rootDir": "src",
+        "outDir": "dist",
+
+        /* Linting */
+        "strict": true,
+        "strictBindCallApply": true,
+        "useDefineForClassFields": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "forceConsistentCasingInFileNames": true,
+        "verbatimModuleSyntax": true,
+
+        /* DX */
+        "declarationMap": true,
+        "noErrorTruncation": true,
+        "pretty": true,
+        "skipLibCheck": true
+    },
+    "include": [
+        "src"
+    ]
+}

@@ -1,0 +1,56 @@
+{
+    "name": "@passeriform/three-tour-controls",
+    "version": "0.1.0",
+    "description": "Camera controller for navigating through a sequence of framed views with smooth scroll-based transitions.",
+    "author": "Utkarsh Bhardwaj (Passeriform) <bhardwajutkarsh.ub@gmail.com>",
+    "license": "MIT",
+    "main": "./dist/three-tour-controls.cjs.js",
+    "module": "./dist/three-tour-controls.es.js",
+    "types": "./dist/types/TourControls.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/types/TourControls.d.ts"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "keywords": [
+        "three",
+        "threejs",
+        "tour",
+        "pose",
+        "controls",
+        "frame",
+        "presentation",
+        "three.js",
+        "camera",
+        "navigation",
+        "scroll",
+        "view"
+    ],
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview",
+        "lint": "prettier .",
+        "lint:fix": "prettier --write .",
+        "clean": "rm -rf dist"
+    },
+    "peerDependencies": {
+        "three": "^0.175.0"
+    },
+    "devDependencies": {
+        "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+        "@types/three": "^0.175.0",
+        "prettier": "^3.5.3",
+        "three": "^0.175.0",
+        "typescript": "~5.7.2",
+        "vite": "^6.3.1",
+        "vite-plugin-dts": "^4.5.3"
+    },
+    "dependencies": {
+        "@tweenjs/tween.js": "^25.0.0"
+    }
+}
