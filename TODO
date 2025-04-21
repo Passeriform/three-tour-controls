@@ -1,0 +1,4 @@
+☐ Animate camera position along a pivot arc when rotating, instead of linear path.
+☐ Accept tweenGroup from the caller
+☐ Add support for orthographic camera
+☐ Fix conflicts with multiple instances operating on the camera
