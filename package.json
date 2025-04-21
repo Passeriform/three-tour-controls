@@ -46,6 +46,7 @@
     "devDependencies": {
         "@trivago/prettier-plugin-sort-imports": "^5.2.2",
         "@types/three": "^0.175.0",
+        "jsdom": "^26.1.0",
         "prettier": "^3.5.3",
         "three": "^0.175.0",
         "typescript": "~5.7.2",
