@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
+import { defineConfig } from "vite"
+import dts from "vite-plugin-dts"
 
 export default defineConfig({
     build: {
@@ -7,20 +7,22 @@ export default defineConfig({
             entry: "src/index.ts",
             name: "TourControls",
             formats: ["es", "cjs"],
-            fileName: (format) => `three-tour-controls.${format}.js`
+            fileName: (format) => `three-tour-controls.${format}.js`,
         },
         rollupOptions: {
             external: ["three"],
             output: {
                 globals: {
-                    three: "THREE"
-                }
-            }
+                    three: "THREE",
+                },
+            },
         },
-        outDir: "dist"
+        outDir: "dist",
     },
-    plugins: [dts({
-        insertTypesEntry: true,
-        tsconfigPath: "./tsconfig.json"
-    })]
-});
+    plugins: [
+        dts({
+            insertTypesEntry: true,
+            tsconfigPath: "./tsconfig.json",
+        }),
+    ],
+})

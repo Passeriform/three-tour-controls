@@ -1,9 +1,9 @@
-import { Group as TweenGroup } from "@tweenjs/tween.js";
-import { Box3, Controls, MathUtils, OrthographicCamera, PerspectiveCamera, Vector3 } from "three";
-import { Z_AXIS } from "./statics";
-import type { BoundPose, Pose } from "./types";
-import { lookAtFromQuaternion, tweenTransform, unpackBounds } from "./utility";
-import type { TourControlsEventMap } from "./events";
+import { Group as TweenGroup } from "@tweenjs/tween.js"
+import { Box3, Controls, MathUtils, OrthographicCamera, PerspectiveCamera, Vector3 } from "three"
+import type { TourControlsEventMap } from "./events"
+import { Z_AXIS } from "./statics"
+import type { BoundPose, Pose } from "./types"
+import { animatePoseTransform, lookAtFromQuaternion, unpackBounds } from "./utility"
 
 class TourControls extends Controls<TourControlsEventMap> {
     private tweenGroup: TweenGroup
@@ -21,10 +21,13 @@ class TourControls extends Controls<TourControlsEventMap> {
 
         this.transitioning = true
 
-        tweenTransform(this.tweenGroup, this.object, pose, { timing: this.timing, onComplete: () => {
-            this.transitioning = false
-            this.dispatchEvent({ type: "change" })
-        } })
+        animatePoseTransform(this.tweenGroup, this.object, pose, {
+            timing: this.timing,
+            onComplete: () => {
+                this.transitioning = false
+                this.dispatchEvent({ type: "change" })
+            },
+        })
     }
 
     private updateToFitScreen() {
@@ -36,7 +39,9 @@ class TourControls extends Controls<TourControlsEventMap> {
                 (heightToFit * 0.5) / Math.tan(this.object.fov * MathUtils.DEG2RAD * 0.5) + this.cameraOffset
 
             const quaternion = lookAtFromQuaternion(this.object, boundPose.quaternion)
-            const position = center.add(Z_AXIS.clone().applyQuaternion(quaternion).multiplyScalar(cameraDistance)).clone()
+            const position = center
+                .add(Z_AXIS.clone().applyQuaternion(quaternion).multiplyScalar(cameraDistance))
+                .clone()
 
             return { position, quaternion }
         })
@@ -109,7 +114,12 @@ class TourControls extends Controls<TourControlsEventMap> {
     }
 
     setPoses(poses: Pose[], boundSize: Vector3 = new Vector3(1, 1, 1)) {
-        this.setBoundPoses(poses.map(({ position, quaternion }) => ({ bounds: new Box3().setFromCenterAndSize(position, boundSize), quaternion })))
+        this.setBoundPoses(
+            poses.map(({ position, quaternion }) => ({
+                bounds: new Box3().setFromCenterAndSize(position, boundSize),
+                quaternion,
+            })),
+        )
     }
 
     setBoundPoses(boundPoses: BoundPose[]) {

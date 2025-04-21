@@ -1,5 +1,5 @@
-import { Box3, Camera, Object3D, Quaternion, Vector3 } from "three"
 import { Easing, Tween, Group as TweenGroup } from "@tweenjs/tween.js"
+import { Box3, Camera, Object3D, Quaternion, Vector3 } from "three"
 import type { Pose } from "./types"
 
 export const unpackBounds = (bounds: Box3) => {
@@ -22,7 +22,7 @@ export type TweenOptions = Partial<{
     onComplete: () => void
 }>
 
-export const tweenTransform = (
+export const animatePoseTransform = (
     group: TweenGroup,
     object: Object3D,
     to: Pose,

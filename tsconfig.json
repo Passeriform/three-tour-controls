@@ -4,10 +4,7 @@
         "target": "ESNext",
         "module": "ESNext",
         "moduleResolution": "node",
-        "lib": [
-            "ESNext",
-            "DOM"
-        ],
+        "lib": ["ESNext", "DOM"],
 
         "declaration": true,
         "isolatedModules": true,
@@ -38,7 +35,5 @@
         /* Types */
         "types": ["vite/client", "vitest/globals"]
     },
-    "include": [
-        "src"
-    ]
+    "include": ["src"]
 }
