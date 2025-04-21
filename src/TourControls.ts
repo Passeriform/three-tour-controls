@@ -85,7 +85,7 @@ class TourControls extends Controls<TourControlsEventMap> {
 
     constructor(
         public object: PerspectiveCamera,
-        public boundPoses: BoundPose[],
+        private boundPoses: BoundPose[],
         public domElement: HTMLElement | null = null,
     ) {
         super(object, domElement)
@@ -102,8 +102,8 @@ class TourControls extends Controls<TourControlsEventMap> {
         this.timing = 400
         this.transitionOnPoseChange = true
 
-        if (domElement) {
-            this.connect(domElement)
+        if (this.domElement) {
+            this.connect(this.domElement)
         }
         this.update()
     }

@@ -41,7 +41,7 @@ describe("TourControls", () => {
 
         controls.setPoses(poses)
 
-        expect(controls.boundPoses.length).toBe(1)
+        expect(((controls as any).boundPoses as BoundPose[]).length).toBe(1)
         expect((controls as any).historyIdx).toBe(0)
         expect(((controls as any).history as Pose[])[0].position.toArray()).toBeCloseToArray([1, 2, -2.072])
         expect(((controls as any).history as Pose[])[0].quaternion.toArray()).toBeCloseToArray([0, 1, 0, 0])
