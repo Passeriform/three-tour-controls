@@ -33,7 +33,7 @@ while IFS= read -r line; do
 
         # Skip unwanted categories
         case "$category" in
-            "Debug"|"Lint"|"Meta"|"CI/CD")
+            "Debug"|"Lint"|"Meta"|"CI"|"CD"|"CI/CD")
                 continue
                 ;;
         esac
