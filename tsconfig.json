@@ -33,7 +33,10 @@
         "declarationMap": true,
         "noErrorTruncation": true,
         "pretty": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+
+        /* Types */
+        "types": ["vite/client", "vitest/globals"]
     },
     "include": [
         "src"
