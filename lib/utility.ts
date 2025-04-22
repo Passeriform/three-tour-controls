@@ -1,5 +1,5 @@
 import { Easing, Tween, Group as TweenGroup } from "@tweenjs/tween.js"
-import { Box3, Camera, Object3D, Quaternion, Vector3 } from "three"
+import { Box3, type Camera, type Object3D, Quaternion, Vector3 } from "three"
 import type { Pose } from "./types"
 
 export const unpackBounds = (bounds: Box3) => {

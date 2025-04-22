@@ -1,4 +1,4 @@
-import { type Event } from "three"
+import type { Event } from "three"
 import type TourControls from "./TourControls"
 
 export type TourControlsEventMap = {

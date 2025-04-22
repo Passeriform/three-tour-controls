@@ -13,7 +13,7 @@ expect.extend({
         }
 
         for (let i = 0; i < received.length; i++) {
-            if (Math.abs(received[i] - expected[i]) > Math.pow(10, -precision)) {
+            if (Math.abs((received[i] ?? 0) - (expected[i] ?? 0)) > Math.pow(10, -precision)) {
                 return {
                     pass: false,
                     expected,

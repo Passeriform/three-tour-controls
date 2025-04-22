@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 package.json.md5
+tsconfig.tsbuildinfo
 dist
 dist-ssr
 *.local

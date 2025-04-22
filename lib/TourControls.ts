@@ -1,5 +1,5 @@
 import { Group as TweenGroup } from "@tweenjs/tween.js"
-import { Box3, Controls, MathUtils, OrthographicCamera, PerspectiveCamera, Vector3 } from "three"
+import { Box3, Controls, MathUtils, type OrthographicCamera, type PerspectiveCamera, Vector3 } from "three"
 import type { TourControlsEventMap } from "./events"
 import { Z_AXIS } from "./statics"
 import type { BoundPose, Pose } from "./types"
@@ -54,7 +54,7 @@ class TourControls extends Controls<TourControlsEventMap> {
 
         this.updateToFitScreen()
 
-        this.animate(this.history[this.historyIdx])
+        this.animate(this.history[this.historyIdx]!)
     }
 
     private onMouseWheel(event: WheelEvent) {
@@ -80,7 +80,7 @@ class TourControls extends Controls<TourControlsEventMap> {
             historyIdx: this.historyIdx,
         })
 
-        this.animate(this.history[this.historyIdx])
+        this.animate(this.history[this.historyIdx]!)
     }
 
     constructor(
@@ -130,7 +130,7 @@ class TourControls extends Controls<TourControlsEventMap> {
         this.updateToFitScreen()
 
         if (this.transitionOnPoseChange) {
-            this.animate(this.history[this.historyIdx])
+            this.animate(this.history[this.historyIdx]!)
         }
     }
 

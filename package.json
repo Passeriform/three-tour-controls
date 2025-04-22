@@ -1,6 +1,6 @@
 {
     "name": "@passeriform/three-tour-controls",
-    "version": "0.1.2",
+    "version": "0.1.5",
     "description": "Camera controller for navigating through a sequence of framed views with smooth scroll-based transitions.",
     "author": "Utkarsh Bhardwaj (Passeriform) <bhardwajutkarsh.ub@gmail.com>",
     "license": "MIT",
@@ -8,13 +8,17 @@
         "type": "git",
         "url": "git+https://github.com/Passeriform/three-tour-controls.git"
     },
-    "main": "./dist/three-tour-controls.cjs.js",
-    "module": "./dist/three-tour-controls.es.js",
-    "types": "./dist/types/TourControls.d.ts",
+    "main": "./dist/index.cjs.js",
+    "module": "./dist/index.es.js",
+    "types": "./dist/types/index.d.ts",
     "exports": {
-        ".": {
-            "import": "./dist/index.js",
-            "types": "./dist/types/TourControls.d.ts"
+        "require": {
+            "types": "./dist/types/index.d.ts",
+            "require": "./dist/index.cjs.js"
+        },
+        "import": {
+            "types": "./dist/types/index.d.ts",
+            "import": "./dist/index.es.js"
         }
     },
     "files": [

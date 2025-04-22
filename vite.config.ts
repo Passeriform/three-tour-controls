@@ -4,10 +4,10 @@ import dts from "vite-plugin-dts"
 export default defineConfig({
     build: {
         lib: {
-            entry: "src/index.ts",
+            entry: "lib/index.ts",
             name: "TourControls",
             formats: ["es", "cjs"],
-            fileName: (format) => `three-tour-controls.${format}.js`,
+            fileName: (format) => `index.${format}.js`,
         },
         rollupOptions: {
             external: ["three"],
