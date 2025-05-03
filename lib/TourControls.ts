@@ -85,7 +85,7 @@ class TourControls extends Controls<TourControlsEventMap> {
 
     constructor(
         public object: PerspectiveCamera,
-        private boundPoses: BoundPose[],
+        private boundPoses: BoundPose[] = [],
         public domElement: HTMLElement | null = null,
     ) {
         super(object, domElement)
@@ -125,7 +125,7 @@ class TourControls extends Controls<TourControlsEventMap> {
     setBoundPoses(boundPoses: BoundPose[]) {
         this.boundPoses = boundPoses
 
-        this.historyIdx = 0
+        this.historyIdx = this.boundPoses.length ? 0 : -1
 
         this.updateToFitScreen()
 

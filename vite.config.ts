@@ -7,7 +7,7 @@ export default defineConfig({
             entry: "lib/index.ts",
             name: "TourControls",
             formats: ["es", "cjs"],
-            fileName: (format) => `index.${format}.js`,
+            fileName: (format) => `index.${format === "es" ? "mjs": "cjs"}`,
         },
         rollupOptions: {
             external: ["three"],
