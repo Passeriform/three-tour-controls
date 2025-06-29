@@ -10,7 +10,7 @@ class TourControls extends Controls<TourControlsEventMap> {
     private transitioning: boolean
     private history: Pose[]
     private historyIdx: number
-    public cameraOffset: number
+    private cameraOffset: number
     public timing: number
     public transitionOnPoseChange: boolean
 
@@ -54,7 +54,9 @@ class TourControls extends Controls<TourControlsEventMap> {
 
         this.updateToFitScreen()
 
-        this.animate(this.history[this.historyIdx]!)
+        if (this.historyIdx) {
+            this.animate(this.history[this.historyIdx]!)
+        }
     }
 
     private onMouseWheel(event: WheelEvent) {
@@ -130,8 +132,21 @@ class TourControls extends Controls<TourControlsEventMap> {
         this.updateToFitScreen()
 
         if (this.transitionOnPoseChange) {
+            this.dispatchEvent({
+                type: "drill",
+                historyIdx: this.historyIdx,
+            })
+
             this.animate(this.history[this.historyIdx]!)
         }
+    }
+
+    setCameraOffset(offset: number) {
+        this.cameraOffset = offset
+
+        this.updateToFitScreen()
+
+        this.animate(this.history[this.historyIdx]!)
     }
 
     update(time?: number) {

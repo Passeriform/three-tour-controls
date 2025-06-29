@@ -158,7 +158,7 @@ controls.setPoses(newPoses)
 
 - The speed of transition across poses in milliseconds. Default: `400`.
 
-### `controls.cameraOffset: number`
+### `controls.setCameraOffset(offset: number)`
 
 - Z-direction offset of camera from the given pose. This can be updated on runtime and will be used on the next transition.
   Changing this property does not trigger a transition by itself. Default: `400`.

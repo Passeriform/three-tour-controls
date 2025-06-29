@@ -9,9 +9,9 @@ describe("TourControls", () => {
     it("should initialize with default values", () => {
         const controls = new TourControls(new PerspectiveCamera(), [], mockDomElement)
 
-        expect(controls.cameraOffset).toBe(4)
         expect(controls.timing).toBe(400)
         expect(controls.transitionOnPoseChange).toBe(true)
+        expect((controls as any).cameraOffset).toBe(4)
         expect((controls as any).history).toEqual([])
         expect((controls as any).historyIdx).toBe(-1)
     })
