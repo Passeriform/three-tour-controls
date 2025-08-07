@@ -1,12 +1,19 @@
-import type { Event } from "three"
+import type { Event, Mesh } from "three"
 import type TourControls from "./TourControls"
 
-export type TourControlsEventMap = {
-    drill: {
-        historyIdx: number
+export type TourControlsEventMap<T extends Mesh> = {
+    navigate: {
+        location: T[] | undefined
+    }
+    transitionChange: {
+        transitioning: boolean
     }
     change: {}
 }
 
-export type TourControlsDrillEvent = TourControlsEventMap["drill"] & Event<"drill", TourControls>
-export type TourControlsChangeEvent = TourControlsEventMap["change"] & Event<"change", TourControls>
+export type TourControlsNavigateEvent<T extends Mesh> = TourControlsEventMap<T>["navigate"] &
+    Event<"navigate", TourControls<T>>
+export type TourControlsTransitionChangeEvent<T extends Mesh> = TourControlsEventMap<T>["transitionChange"] &
+    Event<"transitionChange", TourControls<T>>
+export type TourControlsChangeEvent<T extends Mesh> = TourControlsEventMap<T>["change"] &
+    Event<"change", TourControls<T>>

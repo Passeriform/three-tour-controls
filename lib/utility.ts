@@ -1,17 +1,6 @@
 import { Easing, Tween, Group as TweenGroup } from "@tweenjs/tween.js"
-import { Box3, type Camera, type Object3D, Quaternion, Vector3 } from "three"
+import { type Object3D } from "three"
 import type { Pose } from "./types"
-
-export const unpackBounds = (bounds: Box3) => {
-    const boundCenter = new Vector3()
-    const boundSize = new Vector3()
-    bounds.getCenter(boundCenter)
-    bounds.getSize(boundSize)
-    return [boundCenter, boundSize] as [Vector3, Vector3]
-}
-
-export const lookAtFromQuaternion = (cam: Camera, q: Quaternion) =>
-    q.clone().multiply(new Quaternion().setFromAxisAngle(cam.up, Math.PI)).normalize()
 
 export const DEFAULT_TWEEN_OPTIONS = {
     timing: 1000,
@@ -19,6 +8,7 @@ export const DEFAULT_TWEEN_OPTIONS = {
 
 export type TweenOptions = Partial<{
     timing: number
+    onUpdate: () => void
     onComplete: () => void
 }>
 
@@ -33,7 +23,7 @@ export const animatePoseTransform = (
     }
 
     const qFrom = object.quaternion.clone()
-    const qTo = to.quaternion.normalize()
+    const qTo = to.quaternion.clone().normalize()
 
     group.add(
         new Tween({ position: object.position.clone(), time: 0 })
@@ -42,10 +32,29 @@ export const animatePoseTransform = (
             .onUpdate(({ position, time }) => {
                 object.position.copy(position)
                 object.quaternion.slerpQuaternions(qFrom, qTo, time)
+                tweenOptions.onUpdate?.()
             })
             .onComplete(() => {
                 tweenOptions.onComplete?.()
             })
             .start(),
     )
+}
+
+export const equalsArray = <T>(a: T[], b: T[]) => {
+    if (a.length !== b.length) {
+        return false
+    }
+
+    for (var idx = 0; idx < a.length; idx++) {
+        if (Array.isArray(a[idx]) && Array.isArray(b[idx])) {
+            if (!equalsArray(a[idx] as any[], b[idx] as any[])) {
+                return false
+            }
+        } else if (a[idx] !== b[idx]) {
+            return false
+        }
+    }
+
+    return true
 }

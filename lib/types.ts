@@ -1,11 +1,11 @@
-import type { Box3, Quaternion, Vector3 } from "three"
+import type { Mesh, Quaternion, Vector3 } from "three"
 
 export type Pose = {
     position: Vector3
     quaternion: Quaternion
 }
 
-export type BoundPose = {
-    bounds: Box3
+export type MeshPose<T extends Mesh = Mesh> = {
+    meshes: T[]
     quaternion: Quaternion
 }

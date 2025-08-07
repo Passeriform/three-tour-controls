@@ -47,22 +47,22 @@ const cube = new THREE.Mesh(geometry, material)
 scene.add(cube)
 ```
 
-### 3. Create Camera Poses
+### 3. Define an Itinerary
 
-Define the poses you want to cycle through. Each pose consists of a position and a rotation (or orientation).
+Each location in the itinerary is a set of meshes and a target quaternion. The camera will move to frame the meshes from the given orientation.
 
 ```ts
-const poses = [
+const itinerary = [
     {
-        position: new THREE.Vector3(10, 10, 10),
+        meshes: [mesh1],
         quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 4, 0)),
     },
     {
-        position: new THREE.Vector3(20, 10, 0),
+        meshes: [mesh2a, mesh2b],
         quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)),
     },
     {
-        position: new THREE.Vector3(0, 20, 10),
+        meshes: [mesh3],
         quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 4, 0, 0)),
     },
 ]
@@ -70,18 +70,21 @@ const poses = [
 
 ### 4. Initialize TourControls
 
-Create and attach the `TourControls` instance to the camera. Pass in the array of predefined poses.
+Attach the `TourControls` instance to the camera.
 
 ```ts
-const controls = new TourControls(camera, poses)
+const controls = new TourControls(camera, renderer.domElement)
 
-// Timing of pose switching can be adjusted as required
-controls.timing = 1000 // Timing for the pose transition in milliseconds (optional) [default: 400]
+controls.setItinerary(itinerary)
+
+// Optionally adjust the timing and viewing distance for locations
+controls.timing = 1000 // default: 400
+controls.setViewingDistance(8) // default: 4
 ```
 
-### 5. Render Loop
+### 5. Navigation
 
-Use the animation loop to continuously update the camera and render the scene.
+Use the mouse wheel to navigate through the itinerary. The camera will animate to each location.
 
 ```ts
 function animate() {
@@ -101,79 +104,63 @@ animate()
 
 Camera aspect ratio is automatically updated when window is resized.
 
-### 7. Updating Poses
+### 7. Updating the Itinerary
 
-Updating poses automatically marks the first pose as active and transitions to it.
-
-```ts
-const newPoses = [
-    {
-        position: new THREE.Vector3(0, 20, 10),
-        quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 4, 0, 0)),
-    },
-    {
-        position: new THREE.Vector3(10, 10, 10),
-        quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 4, 0)),
-    },
-    {
-        position: new THREE.Vector3(20, 10, 0),
-        quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)),
-    },
-]
-controls.setPoses(newPoses)
-```
-
-If you want to disable automatic animation when updating poses, set `transitionOnPoseChange` to `false`.
-**NOTE:** Setting this option may cause undesirable user experience in the tour and is thus not recommended.
+You can update the itinerary at any time.
 
 ```ts
-controls.transitionOnPoseChange = false
-controls.setPoses(newPoses)
+controls.setItinerary(newItinerary)
 ```
 
 ## API
 
-### `TourControls(camera: THREE.PerspectiveCamera, boundPoses: Array<{ bounds: THREE.Box3, quaternion: THREE.Quaternion }>, domElement?: HTMLElement)`
+### `TourControls(camera: THREE.PerspectiveCamera, domElement?: HTMLElement)`
 
 - **camera**: The Three.js perspective camera you want to control.
-- **boundPoses**: An array of objects representing the different camera poses. Each object should have:
-    - `bounds`: The `THREE.Box3` bounding box for the pose.
-    - `quaternion`: The `THREE.Quaternion` rotation (or orientation) for the camera.
 - **domElement**: The HTML element to attach event listeners to (optional).
 
-### `controls.setPoses(poses: Array<{ position: THREE.Vector3, quaternion: THREE.Quaternion }>, boundSize?: THREE.Vector3)`
+### `controls.setItinerary(locations: Array<{ meshes: THREE.Mesh[], quaternion: THREE.Quaternion }>)`
 
-- **poses**: An array of objects representing the different camera poses. Each object should have:
-    - `position`: The `THREE.Vector3` position for the camera.
-    - `quaternion`: The `THREE.Quaternion` rotation (or orientation) for the camera.
-- **boundSize**: The size of the bounding box for each pose (optional, default: `new THREE.Vector3(1, 1, 1)`).
+Set the base locations the control can move the camera to along with their target orientation.
 
-### `controls.setBoundPoses(boundPoses: Array<{ bounds: THREE.Box3, quaternion: THREE.Quaternion }>)`
+- **location**: Array of objects representing locations. Each object should have:
+    - `meshes`: Array of meshes to frame.
+    - `quaternion`: Target orientation for the camera.
 
-- **boundPoses**: An array of objects representing the different camera poses. Each object should have:
-    - `bounds`: The `THREE.Box3` bounding box for the pose.
-    - `quaternion`: The `THREE.Quaternion` rotation (or orientation) for the camera.
+### `controls.pushItinerary(meshes: THREE.Mesh[], quaternion: THREE.Quaternion)`
+
+Add a new location to the itinerary and navigate to it.
+
+- **meshes**: Array of meshes to focus on.
+- **quaternion**: Target orientation for the camera.
+
+### `controls.setViewingDistance(distance: number)`
+
+Set the camera's distance from the framed meshes.
+
+### `controls.setHomePose(pose: { position: THREE.Vector3, quaternion: THREE.Quaternion })`
+
+Set the home pose for the camera. When navigation is goes before the first location via scroll, the camera will return to this pose.
+
+### `controls.setExitToHomeFlag(value: boolean)`
+
+If set to `true`, scrolling past the first pose will return the camera to the home pose and clear navigation history.
 
 ### `controls.timing: number`
 
-- The speed of transition across poses in milliseconds. Default: `400`.
+The speed of animating the camera across locations in milliseconds. Default: `400`.
 
-### `controls.setCameraOffset(offset: number)`
+### `controls.connect(element: HTMLElement)`
 
-- Z-direction offset of camera from the given pose. This can be updated on runtime and will be used on the next transition.
-  Changing this property does not trigger a transition by itself. Default: `400`.
-
-### `controls.transitionOnPoseChange: boolean`
-
-- Whether to begin a transition when the poses are updated using `setPoses()` or `setBoundPoses()`. Default: `true`.
+Manually attach event listeners to a specific DOM element. This is called automatically in the constructor if a `domElement` is provided, but can be used to re-attach listeners if needed.
 
 ### `controls.update(time?: number)`
 
-- Updates the internal tween animations. Call this in your render loop.
+Updates the internal tween animations. Call this in your render loop.
 
 ### `controls.clear()`
 
-- Clears all animations and disposes of the controls.
+Clears all animations and disposes of the controls.
 
 ## Example
 
@@ -186,22 +173,28 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const renderer = new THREE.WebGLRenderer()
 document.body.appendChild(renderer.domElement)
 
-const poses = [
+const cube = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial({ color: 0x00ff00 }))
+const sphere = new THREE.Mesh(new THREE.SphereGeometry(), new THREE.MeshBasicMaterial({ color: 0xff0000 }))
+const torus = new THREE.Mesh(new THREE.TorusGeometry(), new THREE.MeshBasicMaterial({ color: 0x0000ff }))
+scene.add(cube, sphere, torus)
+
+const itinerary = [
     {
-        position: new THREE.Vector3(10, 10, 10),
+        meshes: [cube, sphere],
         quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 4, 0)),
     },
     {
-        position: new THREE.Vector3(20, 10, 0),
-        quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0)),
+        meshes: [torus],
+        quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 6, Math.PI / 2, 0)),
     },
     {
-        position: new THREE.Vector3(0, 20, 10),
-        quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 4, 0, 0)),
+        meshes: [cube, torus],
+        quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 3)),
     },
 ]
 
-const controls = new TourControls(camera, poses)
+const controls = new TourControls(camera, renderer.domElement)
+controls.setItinerary(itinerary)
 controls.timing = 1000
 
 function animate() {

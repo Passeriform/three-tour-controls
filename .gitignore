@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 package.json.md5
 tsconfig.tsbuildinfo
+coverage
 dist
 dist-ssr
 *.local

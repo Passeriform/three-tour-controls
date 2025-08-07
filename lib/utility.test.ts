@@ -1,47 +1,7 @@
 import { Group as TweenGroup } from "@tweenjs/tween.js"
-import { Box3, Camera, Object3D, Quaternion, Vector3 } from "three"
+import { Object3D, Quaternion, Vector3 } from "three"
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { animatePoseTransform, lookAtFromQuaternion, unpackBounds } from "./utility"
-
-describe("unpackBounds", () => {
-    it("should return the center and size of the Box3 bounds", () => {
-        const bounds = new Box3(new Vector3(0, 0, 0), new Vector3(2, 2, 2))
-        const [center, size] = unpackBounds(bounds)
-
-        expect(center.toArray()).toEqual([1, 1, 1])
-        expect(size.toArray()).toEqual([2, 2, 2])
-    })
-})
-
-describe("lookAtFromQuaternion", () => {
-    it("should return quaternion rotated along camera UP axis by 180 degrees", () => {
-        const camera = new Camera()
-        const quaternion = new Quaternion(0, 0, 0, 1)
-
-        const result = lookAtFromQuaternion(camera, quaternion)
-
-        expect(result.toArray()).toBeCloseToArray([0, 1, 0, 0])
-    })
-
-    it("should return rotated quaternion given a complex quaternion", () => {
-        const camera = new Camera()
-        const quaternion = new Quaternion(0.5, 0.5, 0.5, 0.5).normalize()
-
-        const result = lookAtFromQuaternion(camera, quaternion)
-
-        expect(result.toArray()).toBeCloseToArray([-0.5, 0.5, 0.5, -0.5])
-    })
-
-    it("should return rotated quaternion given a different camera UP axis", () => {
-        const camera = new Camera()
-        camera.up.set(1, 1, 1).normalize()
-        const quaternion = new Quaternion(0, 0, 0, 1)
-
-        const result = lookAtFromQuaternion(camera, quaternion)
-
-        expect(result.toArray()).toBeCloseToArray([0.577, 0.577, 0.577, 0], 3)
-    })
-})
+import { animatePoseTransform } from "./utility"
 
 describe("animatePoseTransform", () => {
     const mockPose = {

@@ -45,6 +45,7 @@
         "lint": "prettier .",
         "lint:fix": "prettier --write .",
         "test": "vitest",
+        "test:coverage": "vitest run --coverage",
         "test:watch": "vitest --watch",
         "clean": "rm -rf dist"
     },
@@ -54,6 +55,7 @@
     "devDependencies": {
         "@trivago/prettier-plugin-sort-imports": "^5.2.2",
         "@types/three": "^0.175.0",
+        "@vitest/coverage-v8": "^3.1.2",
         "jsdom": "^26.1.0",
         "prettier": "^3.5.3",
         "three": "^0.175.0",
@@ -63,6 +65,7 @@
         "vitest": "^3.1.2"
     },
     "dependencies": {
-        "@tweenjs/tween.js": "^25.0.0"
+        "@tweenjs/tween.js": "^25.0.0",
+        "typescript-event-target": "^1.1.1"
     }
 }

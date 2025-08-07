@@ -1,18 +1,46 @@
 import { Group as TweenGroup } from "@tweenjs/tween.js"
-import { Box3, Controls, MathUtils, type OrthographicCamera, type PerspectiveCamera, Vector3 } from "three"
+import { Box3, Controls, MathUtils, type Mesh, type PerspectiveCamera, Sphere, Vector3 } from "three"
 import type { TourControlsEventMap } from "./events"
-import { Z_AXIS } from "./statics"
-import type { BoundPose, Pose } from "./types"
-import { animatePoseTransform, lookAtFromQuaternion, unpackBounds } from "./utility"
+import { TrackedHistory } from "./history"
+import { CAMERA_FORWARD } from "./statics"
+import type { MeshPose, Pose } from "./types"
+import { animatePoseTransform, equalsArray } from "./utility"
 
-class TourControls extends Controls<TourControlsEventMap> {
+class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
+    private locations: MeshPose<T>[]
+    private exitToHome: boolean
+    private viewingDistance: number
+    private homePose: Pose
+    private history: TrackedHistory<Pose>
     private tweenGroup: TweenGroup
     private transitioning: boolean
-    private history: Pose[]
-    private historyIdx: number
-    private cameraOffset: number
     public timing: number
-    public transitionOnPoseChange: boolean
+
+    private computePose(location: MeshPose<T>) {
+        const bounds = new Box3()
+        location.meshes.forEach((mesh) => {
+            mesh.geometry.computeBoundingBox()
+            const meshBounds = mesh.geometry.boundingBox!.clone().applyMatrix4(mesh.matrixWorld)
+            bounds.union(meshBounds)
+        })
+
+        const center = new Vector3()
+        bounds.getCenter(center)
+
+        const sphere = new Sphere()
+        bounds.getBoundingSphere(sphere)
+
+        const minRequiredDistance = sphere.radius / Math.sin(MathUtils.degToRad(this.object.fov / 2))
+        const distance = Math.max(minRequiredDistance, this.viewingDistance)
+        const forward = CAMERA_FORWARD.clone().applyQuaternion(location.quaternion)
+        const position = center.clone().addScaledVector(forward, -distance)
+
+        return { position, quaternion: location.quaternion }
+    }
+
+    private recomputePoses() {
+        return this.locations.map((location) => this.computePose(location))
+    }
 
     private animate(pose: Pose) {
         if (!this.enabled) {
@@ -20,30 +48,23 @@ class TourControls extends Controls<TourControlsEventMap> {
         }
 
         this.transitioning = true
+        this.dispatchEvent({
+            type: "transitionChange",
+            transitioning: this.transitioning,
+        })
 
         animatePoseTransform(this.tweenGroup, this.object, pose, {
             timing: this.timing,
-            onComplete: () => {
-                this.transitioning = false
+            onUpdate: () => {
                 this.dispatchEvent({ type: "change" })
             },
-        })
-    }
-
-    private updateToFitScreen() {
-        this.history = this.boundPoses.map((boundPose) => {
-            const [center, size] = unpackBounds(boundPose.bounds)
-
-            const heightToFit = size.x / size.y < this.object.aspect ? size.y : size.x / this.object.aspect
-            const cameraDistance =
-                (heightToFit * 0.5) / Math.tan(this.object.fov * MathUtils.DEG2RAD * 0.5) + this.cameraOffset
-
-            const quaternion = lookAtFromQuaternion(this.object, boundPose.quaternion)
-            const position = center
-                .add(Z_AXIS.clone().applyQuaternion(quaternion).multiplyScalar(cameraDistance))
-                .clone()
-
-            return { position, quaternion }
+            onComplete: () => {
+                this.transitioning = false
+                this.dispatchEvent({
+                    type: "transitionChange",
+                    transitioning: this.transitioning,
+                })
+            },
         })
     }
 
@@ -52,101 +73,100 @@ class TourControls extends Controls<TourControlsEventMap> {
 
         this.object.updateProjectionMatrix()
 
-        this.updateToFitScreen()
+        const poses = this.recomputePoses()
 
-        if (this.historyIdx) {
-            this.animate(this.history[this.historyIdx]!)
-        }
+        this.history.replace(poses)
     }
 
     private onMouseWheel(event: WheelEvent) {
-        if (!this.enabled || !this.history.length || this.transitioning) {
+        if (!this.enabled || this.transitioning || event.deltaY === 0 || !this.history.peek()) {
             return
         }
 
-        if (
-            (event.deltaY < 0 && this.historyIdx === this.history.length - 1) ||
-            (event.deltaY > 0 && this.historyIdx === 0)
-        ) {
+        if (this.exitToHome && event.deltaY > 0 && this.history.isFirst()) {
+            this.history.clear()
+            return
+        }
+
+        if ((event.deltaY < 0 && this.history.isLast()) || (event.deltaY > 0 && this.history.isFirst())) {
             return
         }
 
         if (event.deltaY < 0) {
-            this.historyIdx++
+            this.history.seekNext()
         } else if (event.deltaY > 0) {
-            this.historyIdx--
+            this.history.seekPrevious()
         }
-
-        this.dispatchEvent({
-            type: "drill",
-            historyIdx: this.historyIdx,
-        })
-
-        this.animate(this.history[this.historyIdx]!)
     }
 
     constructor(
-        public object: PerspectiveCamera,
-        private boundPoses: BoundPose[] = [],
-        public domElement: HTMLElement | null = null,
+        public override object: PerspectiveCamera,
+        public override domElement: HTMLElement | null = null,
     ) {
         super(object, domElement)
 
-        if ("isOrthographicCamera" in object && (object as unknown as OrthographicCamera).isOrthographicCamera) {
-            throw Error("Tour controls currently only works for perspective camera.")
-        }
-
+        this.locations = []
         this.tweenGroup = new TweenGroup()
-        this.cameraOffset = 4
+        this.history = new TrackedHistory()
+        this.homePose = {
+            position: this.object.position.clone(),
+            quaternion: this.object.quaternion.clone(),
+        }
+        this.exitToHome = false
+        this.viewingDistance = 4
         this.transitioning = false
-        this.history = []
-        this.historyIdx = -1
         this.timing = 400
-        this.transitionOnPoseChange = true
+
+        this.history.addEventListener("trackChanged", (event) => {
+            this.dispatchEvent({
+                type: "navigate",
+                location: event.detail.item ? this.locations[event.detail.index]?.meshes : undefined,
+            })
+            this.animate(event.detail.item ?? this.homePose)
+        })
 
         if (this.domElement) {
             this.connect(this.domElement)
         }
+
         this.update()
     }
 
     connect(element: HTMLElement) {
-        element.addEventListener("resize", () => this.onResize())
+        window.addEventListener("resize", () => this.onResize())
         element.addEventListener("wheel", (event) => this.onMouseWheel(event))
     }
 
-    setPoses(poses: Pose[], boundSize: Vector3 = new Vector3(1, 1, 1)) {
-        this.setBoundPoses(
-            poses.map(({ position, quaternion }) => ({
-                bounds: new Box3().setFromCenterAndSize(position, boundSize),
-                quaternion,
-            })),
-        )
+    setExitToHome(value: boolean) {
+        this.exitToHome = value
     }
 
-    setBoundPoses(boundPoses: BoundPose[]) {
-        this.boundPoses = boundPoses
+    setHomePose(pose: Pose) {
+        this.homePose = pose
+    }
 
-        this.historyIdx = this.boundPoses.length ? 0 : -1
+    setViewingDistance(distance: number) {
+        this.viewingDistance = distance
 
-        this.updateToFitScreen()
+        const poses = this.recomputePoses()
 
-        if (this.transitionOnPoseChange) {
-            this.dispatchEvent({
-                type: "drill",
-                historyIdx: this.historyIdx,
-            })
+        this.history.replace(poses)
+    }
 
-            this.animate(this.history[this.historyIdx]!)
+    setItinerary(locations: MeshPose<T>[]) {
+        this.locations = locations
+
+        const poses = this.recomputePoses()
+
+        this.history.replace(poses)
+    }
+
+    pushItinerary(location: MeshPose<T>) {
+        if (equalsArray(location.meshes, this.locations[this.locations.length - 1]!.meshes)) {
+            return
         }
-    }
 
-    setCameraOffset(offset: number) {
-        this.cameraOffset = offset
-
-        this.updateToFitScreen()
-
-        this.animate(this.history[this.historyIdx]!)
+        this.history.push(this.computePose(location))
     }
 
     update(time?: number) {

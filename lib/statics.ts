@@ -1,3 +1,3 @@
 import { Vector3 } from "three"
 
-export const Z_AXIS = Object.freeze(new Vector3(0, 0, 1))
+export const CAMERA_FORWARD = Object.freeze(new Vector3(0, 0, -1))
