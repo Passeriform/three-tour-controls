@@ -9,7 +9,6 @@ import { animatePoseTransform, equalsArray } from "./utility"
 class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
     private locations: MeshPose<T>[]
     private exitToHome: boolean
-    private viewingDistance: number
     private homePose: Pose
     private history: TrackedHistory<Pose>
     private tweenGroup: TweenGroup
@@ -31,7 +30,7 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         bounds.getBoundingSphere(sphere)
 
         const minRequiredDistance = sphere.radius / Math.sin(MathUtils.degToRad(this.object.fov / 2))
-        const distance = Math.max(minRequiredDistance, this.viewingDistance)
+        const distance = Math.max(minRequiredDistance, location.distance)
         const forward = CAMERA_FORWARD.clone().applyQuaternion(location.quaternion)
         const position = center.clone().addScaledVector(forward, -distance)
 
@@ -113,7 +112,6 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
             quaternion: this.object.quaternion.clone(),
         }
         this.exitToHome = false
-        this.viewingDistance = 4
         this.transitioning = false
         this.timing = 400
 
@@ -143,14 +141,6 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
 
     setHomePose(pose: Pose) {
         this.homePose = pose
-    }
-
-    setViewingDistance(distance: number) {
-        this.viewingDistance = distance
-
-        const poses = this.recomputePoses()
-
-        this.history.replace(poses)
     }
 
     setItinerary(locations: MeshPose<T>[]) {

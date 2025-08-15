@@ -8,4 +8,5 @@ export type Pose = {
 export type MeshPose<T extends Mesh = Mesh> = {
     meshes: T[]
     quaternion: Quaternion
+    distance: number
 }
