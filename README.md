@@ -77,9 +77,7 @@ const controls = new TourControls(camera, renderer.domElement)
 
 controls.setItinerary(itinerary)
 
-// Optionally adjust the timing and viewing distance for locations
 controls.timing = 1000 // default: 400
-controls.setViewingDistance(8) // default: 4
 ```
 
 ### 5. Navigation
@@ -106,10 +104,24 @@ Camera aspect ratio is automatically updated when window is resized.
 
 ### 7. Updating the Itinerary
 
-You can update the itinerary at any time.
+You can update the itinerary at any time:
 
 ```ts
 controls.setItinerary(newItinerary)
+```
+
+### 8. Detour Navigation (Advanced)
+
+You can temporarily navigate to a "detour" location without changing the main itinerary. This is useful for highlighting or focusing on a mesh outside the main tour.
+
+```ts
+controls.detour({
+    meshes: [specialMesh],
+    quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)),
+})
+
+// To end the detour and return to the main tour:
+controls.endDetour()
 ```
 
 ## API
@@ -123,28 +135,25 @@ controls.setItinerary(newItinerary)
 
 Set the base locations the control can move the camera to along with their target orientation.
 
-- **location**: Array of objects representing locations. Each object should have:
+- **locations**: Array of objects representing locations. Each object should have:
     - `meshes`: Array of meshes to frame.
     - `quaternion`: Target orientation for the camera.
 
-### `controls.pushItinerary(meshes: THREE.Mesh[], quaternion: THREE.Quaternion)`
+### `controls.detour(location: { meshes: THREE.Mesh[], quaternion: THREE.Quaternion })`
 
-Add a new location to the itinerary and navigate to it.
+Temporarily navigate to a detour location. The detour can be ended with `controls.endDetour()`.
 
-- **meshes**: Array of meshes to focus on.
-- **quaternion**: Target orientation for the camera.
+### `controls.endDetour()`
 
-### `controls.setViewingDistance(distance: number)`
+End the current detour and return to the main itinerary.
 
-Set the camera's distance from the framed meshes.
+### `controls.detourExitCondition: "first" | "last"`
 
-### `controls.setHomePose(pose: { position: THREE.Vector3, quaternion: THREE.Quaternion })`
+Controls when detour navigation ends: at the first or last detour location. Default: `"last"`.
 
-Set the home pose for the camera. When navigation is goes before the first location via scroll, the camera will return to this pose.
+### `controls.detourExitStrategy: "same" | "next" | "first" | "last"`
 
-### `controls.setExitToHomeFlag(value: boolean)`
-
-If set to `true`, scrolling past the first pose will return the camera to the home pose and clear navigation history.
+Controls where to return in the main itinerary after ending a detour. Default: `"same"`.
 
 ### `controls.timing: number`
 
@@ -196,6 +205,15 @@ const itinerary = [
 const controls = new TourControls(camera, renderer.domElement)
 controls.setItinerary(itinerary)
 controls.timing = 1000
+
+// Example: Detour navigation
+controls.detour({
+    meshes: [cube],
+    quaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)),
+})
+
+// ... later
+controls.endDetour()
 
 function animate() {
     requestAnimationFrame(animate)

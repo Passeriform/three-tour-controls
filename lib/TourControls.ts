@@ -6,13 +6,18 @@ import { CAMERA_FORWARD } from "./statics"
 import type { MeshPose, Pose } from "./types"
 import { animatePoseTransform, equalsArray } from "./utility"
 
+type DetourExitCondition = "first" | "last"
+type DetourExitStrategy = "same" | "next" | "first" | "last"
+
 class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
     private locations: MeshPose<T>[]
-    private exitToHome: boolean
-    private homePose: Pose
     private history: TrackedHistory<Pose>
+    private detourLocations: MeshPose<T>[]
+    private detourHistory: TrackedHistory<Pose>
     private tweenGroup: TweenGroup
     private transitioning: boolean
+    public detourExitStrategy: DetourExitStrategy
+    public detourExitCondition: DetourExitCondition
     public timing: number
 
     private computePose(location: MeshPose<T>) {
@@ -35,10 +40,6 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         const position = center.clone().addScaledVector(forward, -distance)
 
         return { position, quaternion: location.quaternion }
-    }
-
-    private recomputePoses() {
-        return this.locations.map((location) => this.computePose(location))
     }
 
     private animate(pose: Pose) {
@@ -67,26 +68,45 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         })
     }
 
+    private recomputePoses() {
+        const poses = this.locations.map((location) => this.computePose(location))
+        this.history.replace(poses)
+
+        const detourPoses = this.detourLocations.map((location) => this.computePose(location))
+        this.detourHistory.replace(detourPoses)
+    }
+
     private onResize() {
         this.object.aspect = window.innerWidth / window.innerHeight
-
         this.object.updateProjectionMatrix()
-
-        const poses = this.recomputePoses()
-
-        this.history.replace(poses)
+        this.recomputePoses()
     }
 
     private onMouseWheel(event: WheelEvent) {
-        if (!this.enabled || this.transitioning || event.deltaY === 0 || !this.history.peek()) {
+        // Early exit on skippable states
+        if (!this.enabled || this.transitioning || event.deltaY === 0) {
             return
         }
 
-        if (this.exitToHome && event.deltaY > 0 && this.history.isFirst()) {
-            this.history.clear()
-            return
+        // Detour navigation
+        if (this.detourHistory.peek()) {
+            // Restore to main history
+            if (
+                (event.deltaY > 0 && this.detourExitCondition === "last" && this.detourHistory.isLast()) ||
+                (event.deltaY < 0 && this.detourExitCondition === "first" && this.detourHistory.isFirst())
+            ) {
+                this.endDetour()
+            }
+
+            // Navigate detour history
+            if (event.deltaY < 0) {
+                this.detourHistory.seekNext()
+            } else if (event.deltaY > 0) {
+                this.detourHistory.seekPrevious()
+            }
         }
 
+        // Regular navigation
         if ((event.deltaY < 0 && this.history.isLast()) || (event.deltaY > 0 && this.history.isFirst())) {
             return
         }
@@ -105,22 +125,38 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         super(object, domElement)
 
         this.locations = []
-        this.tweenGroup = new TweenGroup()
         this.history = new TrackedHistory()
-        this.homePose = {
-            position: this.object.position.clone(),
-            quaternion: this.object.quaternion.clone(),
-        }
-        this.exitToHome = false
+        this.detourLocations = []
+        this.detourHistory = new TrackedHistory()
+        this.detourExitCondition = "last"
+        this.detourExitStrategy = "same"
+        this.tweenGroup = new TweenGroup()
         this.transitioning = false
         this.timing = 400
 
         this.history.addEventListener("trackChanged", (event) => {
+            if (!event.detail.item || this.detourHistory.peek()) {
+                return
+            }
+
             this.dispatchEvent({
                 type: "navigate",
-                location: event.detail.item ? this.locations[event.detail.index]?.meshes : undefined,
+                location: this.locations[event.detail.index]!.meshes,
             })
-            this.animate(event.detail.item ?? this.homePose)
+            this.animate(event.detail.item)
+        })
+
+        this.detourHistory.addEventListener("trackChanged", (event) => {
+            // Exit detour
+            if (!event.detail.item) {
+                return
+            }
+
+            this.dispatchEvent({
+                type: "navigate",
+                location: this.detourLocations[event.detail.index]!.meshes,
+            })
+            this.animate(event.detail.item)
         })
 
         if (this.domElement) {
@@ -135,28 +171,43 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         element.addEventListener("wheel", (event) => this.onMouseWheel(event))
     }
 
-    setExitToHome(value: boolean) {
-        this.exitToHome = value
-    }
-
-    setHomePose(pose: Pose) {
-        this.homePose = pose
-    }
-
     setItinerary(locations: MeshPose<T>[]) {
         this.locations = locations
-
-        const poses = this.recomputePoses()
-
-        this.history.replace(poses)
+        this.detourLocations = []
+        this.recomputePoses()
     }
 
-    pushItinerary(location: MeshPose<T>) {
-        if (equalsArray(location.meshes, this.locations[this.locations.length - 1]!.meshes)) {
+    detour(location: MeshPose<T>) {
+        if (equalsArray(location.meshes, this.detourLocations[this.detourLocations.length - 1]?.meshes ?? [])) {
             return
         }
 
-        this.history.push(this.computePose(location))
+        this.detourLocations.push(location)
+        this.detourHistory.push(this.computePose(location))
+
+        this.dispatchEvent({ type: "detourStart" })
+    }
+
+    endDetour() {
+        if (!this.detourHistory.peek()) {
+            return
+        }
+
+        this.detourLocations = []
+        this.detourHistory.clear()
+
+        this.dispatchEvent({ type: "detourEnd" })
+
+        switch (this.detourExitStrategy) {
+            case "same":
+                return this.history.refreshSeek()
+            case "next":
+                return this.history.seekNext()
+            case "first":
+                return this.history.seekFirst()
+            case "last":
+                return this.history.seekLast()
+        }
     }
 
     update(time?: number) {

@@ -9,6 +9,8 @@ export type TourControlsEventMap<T extends Mesh> = {
         transitioning: boolean
     }
     change: {}
+    detourStart: {}
+    detourEnd: {}
 }
 
 export type TourControlsNavigateEvent<T extends Mesh> = TourControlsEventMap<T>["navigate"] &
@@ -17,3 +19,7 @@ export type TourControlsTransitionChangeEvent<T extends Mesh> = TourControlsEven
     Event<"transitionChange", TourControls<T>>
 export type TourControlsChangeEvent<T extends Mesh> = TourControlsEventMap<T>["change"] &
     Event<"change", TourControls<T>>
+export type TourControlsDetourStartEvent<T extends Mesh> = TourControlsEventMap<T>["detourStart"] &
+    Event<"detourStart", TourControls<T>>
+export type TourControlsDetourEndEvent<T extends Mesh> = TourControlsEventMap<T>["detourEnd"] &
+    Event<"detourEnd", TourControls<T>>

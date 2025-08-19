@@ -1,11 +1,6 @@
 import { TypedEventTarget } from "typescript-event-target"
 
-const ReplaceStrategy = {
-    TRACK_LATEST: "TRACK_LATEST",
-    TRY_PRESERVE_TRACK: "TRY_PRESERVE_TRACK",
-} as const
-
-type ReplaceStrategy = (typeof ReplaceStrategy)[keyof typeof ReplaceStrategy]
+type ReplaceStrategy = "TRACK_LATEST" | "TRY_PRESERVE_TRACK"
 
 type TrackedHistoryCtorOptions = Partial<{
     replaceStrategy: ReplaceStrategy
@@ -65,7 +60,7 @@ export class TrackedHistory<T> extends TypedEventTarget<TrackedHistoryEventMap<T
         this.tracker = undefined
         this.history = []
         this.map = this.history.map
-        this.replaceStrategy = options?.replaceStrategy ?? ReplaceStrategy.TRY_PRESERVE_TRACK
+        this.replaceStrategy = options?.replaceStrategy ?? "TRY_PRESERVE_TRACK"
     }
 
     // Helpers
@@ -89,9 +84,9 @@ export class TrackedHistory<T> extends TypedEventTarget<TrackedHistoryEventMap<T
 
         if (!this.history.length) {
             this.tracker = undefined
-        } else if (this.replaceStrategy === ReplaceStrategy.TRY_PRESERVE_TRACK) {
+        } else if (this.replaceStrategy === "TRY_PRESERVE_TRACK") {
             this.tracker = Math.min(this.tracker ?? this.MAX_TRACK, this.MAX_TRACK)
-        } else if (this.replaceStrategy === ReplaceStrategy.TRACK_LATEST && this.history.length) {
+        } else if (this.replaceStrategy === "TRACK_LATEST" && this.history.length) {
             this.tracker = this.MAX_TRACK
         }
 
@@ -120,6 +115,26 @@ export class TrackedHistory<T> extends TypedEventTarget<TrackedHistoryEventMap<T
         return this.tracker
     }
 
+    seekFirst() {
+        if (this.tracker === undefined) {
+            return
+        }
+
+        this.tracker = 0
+
+        this.dispatchTrackChanged()
+    }
+
+    seekLast() {
+        if (this.tracker === undefined) {
+            return
+        }
+
+        this.tracker = this.MAX_TRACK
+
+        this.dispatchTrackChanged()
+    }
+
     seekNext() {
         if (this.tracker === undefined) {
             return
@@ -145,6 +160,10 @@ export class TrackedHistory<T> extends TypedEventTarget<TrackedHistoryEventMap<T
 
         this.tracker--
 
+        this.dispatchTrackChanged()
+    }
+
+    refreshSeek() {
         this.dispatchTrackChanged()
     }
 
