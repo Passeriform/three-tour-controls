@@ -93,20 +93,13 @@ export class TrackedHistory<T> extends TypedEventTarget<TrackedHistoryEventMap<T
         this.dispatchTrackChanged()
     }
 
-    push(item: T) {
-        this.history.push(item)
-        this.tracker = this.MAX_TRACK
-        this.dispatchTrackChanged()
-    }
-
-    invalidateFromSeek() {
-        if (this.tracker === undefined) {
-            return
+    push(...items: T[]) {
+        if (this.tracker === undefined || this.tracker === this.MAX_TRACK) {
+            this.history.push(...items)
+        } else {
+            this.history.splice(this.tracker + 1, this.history.length, ...items)
         }
-
-        this.history.splice(this.tracker + 1, this.history.length)
         this.tracker = this.MAX_TRACK
-
         this.dispatchTrackChanged()
     }
 

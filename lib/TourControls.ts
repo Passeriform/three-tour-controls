@@ -192,7 +192,7 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
             return
         }
 
-        this.detourLocations.push(location)
+        this.detourLocations.splice(this.detourHistory.getSeek()! + 1, this.detourLocations.length, location)
         this.detourHistory.push(this.computePose(location))
 
         this.dispatchEvent({ type: "detourStart" })

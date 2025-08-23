@@ -36,16 +36,37 @@ describe("TrackedHistory", () => {
         expect(history.isFirst()).toBe(false)
         expect(history.isLast()).toBe(true)
 
-        // tracker at first element in multiple history elements
-        history.seekPrevious()
-        expect(history.isFirst()).toBe(true)
-        expect(history.isLast()).toBe(false)
-
         // tracker in the middle
         history.push(3)
         history.seekPrevious()
         expect(history.isFirst()).toBe(false)
         expect(history.isLast()).toBe(false)
+
+        // tracker at first element in multiple history elements
+        history.seekPrevious()
+        expect(history.isFirst()).toBe(true)
+        expect(history.isLast()).toBe(false)
+
+        // pushing truncates forward history
+        history.push(3)
+        expect(history.isFirst()).toBe(false)
+        expect(history.isLast()).toBe(true)
+    })
+
+    it("should truncate forward history on push when not at the end", () => {
+        const history = new TrackedHistory<number>()
+        history.push(1)
+        history.push(2)
+        history.push(3)
+        expect(history.peek()).toBe(3)
+        history.seekPrevious()
+        expect(history.peek()).toBe(2)
+        history.push(4)
+        expect(history.peek()).toBe(4)
+        history.seekPrevious()
+        expect(history.peek()).toBe(2)
+        history.seekNext()
+        expect(history.peek()).toBe(4)
     })
 
     it("should seek next and previous, and not go out of bounds", () => {
@@ -96,19 +117,6 @@ describe("TrackedHistory", () => {
         history.push(2)
         history.replace([10, 20, 30])
         expect(history.peek()).toBe(30)
-    })
-
-    it("should invalidate from seek and truncate history", () => {
-        const history = new TrackedHistory<number>()
-        history.push(1)
-        history.push(2)
-        history.push(3)
-        history.seekPrevious()
-        expect(history.peek()).toBe(2)
-        history.invalidateFromSeek()
-        expect(history.peek()).toBe(2)
-        history.push(99)
-        expect(history.peek()).toBe(99)
     })
 
     it("should dispatch trackChanged event on push, clear, seek, and replace", () => {
