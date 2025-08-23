@@ -113,6 +113,8 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
             } else if (event.deltaY > 0) {
                 this.detourHistory.seekPrevious()
             }
+
+            return
         }
 
         // Regular navigation
