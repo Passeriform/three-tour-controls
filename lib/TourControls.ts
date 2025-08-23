@@ -21,6 +21,14 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
     public timing: number
 
     private computePose(location: MeshPose<T>) {
+        if (location.meshes.length === 0) {
+            throw new Error("Location must contain at least one mesh")
+        }
+
+        if (location.meshes.some((mesh) => !(mesh && mesh.isMesh))) {
+            throw new Error("Location contains an invalid mesh")
+        }
+
         const bounds = new Box3()
         location.meshes.forEach((mesh) => {
             mesh.geometry.computeBoundingBox()
@@ -92,10 +100,11 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         if (this.detourHistory.peek()) {
             // Restore to main history
             if (
-                (event.deltaY > 0 && this.detourExitCondition === "last" && this.detourHistory.isLast()) ||
-                (event.deltaY < 0 && this.detourExitCondition === "first" && this.detourHistory.isFirst())
+                (event.deltaY > 0 && this.detourExitCondition === "first" && this.detourHistory.isFirst()) ||
+                (event.deltaY < 0 && this.detourExitCondition === "last" && this.detourHistory.isLast())
             ) {
                 this.endDetour()
+                return
             }
 
             // Navigate detour history
@@ -107,7 +116,7 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         }
 
         // Regular navigation
-        if ((event.deltaY < 0 && this.history.isLast()) || (event.deltaY > 0 && this.history.isFirst())) {
+        if ((event.deltaY > 0 && this.history.isFirst()) || (event.deltaY < 0 && this.history.isLast())) {
             return
         }
 
@@ -175,6 +184,7 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
         this.locations = locations
         this.detourLocations = []
         this.recomputePoses()
+        this.history.seekFirst()
     }
 
     detour(location: MeshPose<T>) {

@@ -1,4 +1,4 @@
-import { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Quaternion, Vector3 } from "three"
+import { BoxGeometry, Mesh, MeshBasicMaterial, PerspectiveCamera, Quaternion, Vector3, type Vector3Tuple } from "three"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import TourControls from "./TourControls"
 
@@ -6,14 +6,27 @@ describe("TourControls", () => {
     let controls: TourControls<Mesh>
     let domElement: HTMLDivElement
     const camera = new PerspectiveCamera(75, 2, 0.1, 100)
-    const wheelUpEvent = new WheelEvent("wheel", { deltaY: -1 })
-    const wheelDownEvent = new WheelEvent("wheel", { deltaY: 1 })
 
-    const createMesh = (pos: [number, number, number]) => {
+    const createMesh = (position: Vector3Tuple) => {
         const mesh = new Mesh(new BoxGeometry(1, 1, 1), new MeshBasicMaterial())
-        mesh.position.set(...pos)
+        mesh.position.set(...position)
         mesh.updateMatrixWorld(true)
         return mesh
+    }
+
+    const timeSkip = () => {
+        vi.runAllTimers()
+        controls.update(Infinity)
+    }
+
+    const goForward = () => {
+        domElement.dispatchEvent(new WheelEvent("wheel", { deltaY: -1 }))
+        timeSkip()
+    }
+
+    const goBackward = () => {
+        domElement.dispatchEvent(new WheelEvent("wheel", { deltaY: 1 }))
+        timeSkip()
     }
 
     beforeEach(() => {
@@ -31,141 +44,175 @@ describe("TourControls", () => {
     describe("navigation and pose update", () => {
         it("updates camera aspect and recomputes poses on resize", () => {
             const mesh = createMesh([0, 0, 0])
-            const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0)
+            const quaternion = new Quaternion(0, 0, 0, 1)
+
             controls.setItinerary([{ meshes: [mesh], quaternion, distance: 5 }])
+            timeSkip()
             window.innerWidth = 800
             window.innerHeight = 400
+
             window.dispatchEvent(new Event("resize"))
-            expect(camera.aspect).toBeCloseTo(2)
+            timeSkip()
+            expect(camera.aspect).toBe(2)
         })
 
         it("navigates forward and backward through multiple itinerary locations", () => {
             const mesh1 = createMesh([0, 0, 0])
             const mesh2 = createMesh([10, 0, 0])
-            const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0)
+            const quaternion = new Quaternion(0, 0, 0, 1)
+
             controls.setItinerary([
                 { meshes: [mesh1], quaternion, distance: 5 },
                 { meshes: [mesh2], quaternion, distance: 5 },
             ])
-            domElement.dispatchEvent(wheelUpEvent)
-            vi.runAllTimers()
-            controls.update(Infinity)
+            timeSkip()
+            expect(camera.position.toArray()).toBeCloseToArray([0, 0, 5])
+
+            goForward()
             expect(camera.position.toArray()).toBeCloseToArray([10, 0, 5])
-            domElement.dispatchEvent(wheelDownEvent)
-            vi.runAllTimers()
-            controls.update(Infinity)
+
+            goBackward()
             expect(camera.position.toArray()).toBeCloseToArray([0, 0, 5])
         })
     })
 
-    describe("detour exit strategies", () => {
-        const strategies: ["next" | "first" | "last", [number, number, number]][] = [
-            ["next", [10, 0, 5]],
-            ["first", [10, 0, 5]],
-            ["last", [10, 0, 5]],
+    describe("detour camera movement", () => {
+        const mesh1 = createMesh([0, 0, 0])
+        const mesh2 = createMesh([10, 0, 0])
+        const mesh3 = createMesh([20, 0, 0])
+        const mesh4 = createMesh([30, 0, 0])
+        const mesh5 = createMesh([40, 0, 0])
+        const quaternion = new Quaternion(0, 0, 0, 1)
+        const detourMesh = createMesh([25, 0, 5])
+        const detourQuaternion = new Quaternion(0, 1, 0, 0)
+        const strategies: ["same" | "next" | "first" | "last", Vector3Tuple][] = [
+            ["same", [20, 0, 15]],
+            ["next", [30, 0, 20]],
+            ["first", [0, 0, 5]],
+            ["last", [40, 0, 25]],
         ]
-        it.each(strategies)(
-            "supports detour exit strategy: %s",
-            (strategy: "next" | "first" | "last", expectedPos: [number, number, number]) => {
-                const mesh1 = createMesh([0, 0, 0])
-                const mesh2 = createMesh([10, 0, 0])
-                const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0)
-                controls.setItinerary([
-                    { meshes: [mesh1], quaternion, distance: 5 },
-                    { meshes: [mesh2], quaternion, distance: 5 },
-                ])
-                const detourMesh = createMesh([20, 0, 0])
-                const detourQuat = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI)
-                controls["detourExitStrategy"] = strategy
-                controls.detour({ meshes: [detourMesh], quaternion: detourQuat, distance: 5 })
-                domElement.dispatchEvent(wheelUpEvent)
-                vi.runAllTimers()
-                controls.update(Infinity)
-                domElement.dispatchEvent(wheelDownEvent)
-                vi.runAllTimers()
-                controls.update(Infinity)
-                domElement.dispatchEvent(wheelUpEvent)
-                vi.runAllTimers()
-                controls.update(Infinity)
-                expect(camera.position.toArray()).toBeCloseToArray(expectedPos)
-            },
-        )
 
-        it("does not add detour if meshes are the same as last itinerary location", () => {
-            const mesh = createMesh([0, 0, 0])
-            const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0)
-            controls.setItinerary([{ meshes: [mesh], quaternion, distance: 5 }])
-            controls.detour({ meshes: [mesh], quaternion, distance: 5 })
-            controls.detour({ meshes: [mesh], quaternion, distance: 10 })
+        it.each(strategies)("supports detour exit strategy: %s", (strategy, expectedPosition) => {
+            controls.setItinerary([
+                { meshes: [mesh1], quaternion, distance: 5 },
+                { meshes: [mesh2], quaternion, distance: 10 },
+                { meshes: [mesh3], quaternion, distance: 15 },
+                { meshes: [mesh4], quaternion, distance: 20 },
+                { meshes: [mesh5], quaternion, distance: 25 },
+            ])
+            timeSkip()
+            goForward()
+            goForward()
+
+            controls["detourExitStrategy"] = strategy
+            controls.detour({ meshes: [detourMesh], quaternion: detourQuaternion, distance: 5 })
+            timeSkip()
+            expect(camera.position.toArray()).toBeCloseToArray([25, 0, 0])
+
+            goForward()
+            expect(camera.position.toArray()).toBeCloseToArray(expectedPosition)
+        })
+
+        it("does not add detour if already detoured to the mesh", () => {
+            controls.setItinerary([{ meshes: [mesh1], quaternion, distance: 5 }])
+            timeSkip()
+
+            controls.detour({ meshes: [mesh2], quaternion, distance: 5 })
+            timeSkip()
+            controls.detour({ meshes: [mesh2], quaternion, distance: 10 })
+            timeSkip()
+
             expect(controls["detourLocations"].length).toBe(1)
             expect(controls["detourLocations"][0]?.distance).toBe(5)
         })
     })
 
-    it("should dispatch 'transitionChange' event at start and end of animation", async () => {
-        const mesh = createMesh([30, 0, 0])
-        const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
-        controls.setItinerary([{ meshes: [mesh], quaternion, distance: 5 }])
+    it("should dispatch 'transitionChange', 'change' and 'navigate' events", async () => {
         camera.position.set(100, 100, 100)
         camera.quaternion.set(0, 0, 0, 1)
         camera.updateMatrixWorld(true)
         controls.timing = 1000
-        const events: any[] = []
-        controls.addEventListener("transitionChange", (e: any) => {
-            events.push(e.transitioning)
-        })
-        controls.setItinerary([
-            { meshes: [mesh], quaternion, distance: 5 },
-            { meshes: [createMesh([40, 0, 0])], quaternion, distance: 5 },
-        ])
-        domElement.dispatchEvent(wheelUpEvent)
-        vi.runAllTimers()
-        controls.update(Infinity)
-        expect(events).toContain(true)
-        expect(events).toContain(false)
-    })
 
-    it("should dispatch 'change' event during animation", () => {
-        const mesh = createMesh([40, 0, 0])
+        const mesh1 = createMesh([30, 0, 0])
+        const mesh2 = createMesh([40, 0, 0])
         const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
-        controls.setItinerary([{ meshes: [mesh], quaternion, distance: 5 }])
+
+        const transitionChangeHandler = vi.fn()
         const changeHandler = vi.fn()
+        const navigateHandler = vi.fn()
+
+        controls.addEventListener("transitionChange", transitionChangeHandler)
         controls.addEventListener("change", changeHandler)
-        domElement.dispatchEvent(wheelUpEvent)
-        vi.runAllTimers()
-        controls.update(Infinity)
-        expect(changeHandler).toHaveBeenCalled()
+        controls.addEventListener("navigate", navigateHandler)
+
+        controls.setItinerary([
+            { meshes: [mesh1], quaternion, distance: 5 },
+            { meshes: [mesh2], quaternion, distance: 5 },
+        ])
+        timeSkip()
+
+        expect(changeHandler).toHaveBeenCalledTimes(2)
+        expect(transitionChangeHandler).toHaveBeenCalledTimes(4)
+        expect(transitionChangeHandler).toHaveBeenNthCalledWith(1, expect.objectContaining({ transitioning: true }))
+        expect(transitionChangeHandler).toHaveBeenNthCalledWith(2, expect.objectContaining({ transitioning: true }))
+        expect(transitionChangeHandler).toHaveBeenNthCalledWith(3, expect.objectContaining({ transitioning: false }))
+        expect(transitionChangeHandler).toHaveBeenNthCalledWith(4, expect.objectContaining({ transitioning: false }))
+        expect(navigateHandler).toHaveBeenCalledTimes(2)
+        expect(navigateHandler).toHaveBeenNthCalledWith(1, expect.objectContaining({ location: [mesh2] }))
+        expect(navigateHandler).toHaveBeenNthCalledWith(2, expect.objectContaining({ location: [mesh1] }))
+        changeHandler.mockClear()
+        transitionChangeHandler.mockClear()
+        navigateHandler.mockClear()
+
+        goForward()
+
+        expect(changeHandler).toHaveBeenCalledTimes(1)
+        expect(transitionChangeHandler).toHaveBeenCalledTimes(2)
+        expect(transitionChangeHandler).toHaveBeenNthCalledWith(1, expect.objectContaining({ transitioning: true }))
+        expect(transitionChangeHandler).toHaveBeenNthCalledWith(2, expect.objectContaining({ transitioning: false }))
+        expect(navigateHandler).toHaveBeenCalledTimes(1)
+        expect(navigateHandler).toHaveBeenNthCalledWith(1, expect.objectContaining({ location: [mesh2] }))
     })
 
-    it("clears all tweens and disposes controls on clear", () => {
-        controls.clear()
-    })
-
-    describe("edge cases and public API", () => {
-        it("does not change camera pose on construction", () => {
+    describe("camera remains stationary", () => {
+        it("does not move camera pose on construction", () => {
             expect(camera.position.toArray()).toBeCloseToArray([0, 0, 10])
             expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
         })
 
-        it("does not change camera pose if itinerary is empty", () => {
+        it("does not move camera pose if itinerary is empty", () => {
             controls.setItinerary([])
-            domElement.dispatchEvent(wheelUpEvent)
-            vi.runAllTimers()
+            timeSkip()
+
+            expect(camera.position.toArray()).toBeCloseToArray([0, 0, 10])
+            expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
+
+            goForward()
+
             expect(camera.position.toArray()).toBeCloseToArray([0, 0, 10])
             expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
         })
 
-        it("does not change camera pose if itinerary has only empty meshes", () => {
+        it("does not move camera when controls are disabled", () => {
+            const mesh1 = createMesh([0, 0, 0])
+            const mesh2 = createMesh([10, 0, 0])
             const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
-            controls.setItinerary([{ meshes: [], quaternion, distance: 1 }])
-            domElement.dispatchEvent(wheelUpEvent)
-            vi.runAllTimers()
+            controls.enabled = false
+            controls.setItinerary([
+                { meshes: [mesh1], quaternion, distance: 5 },
+                { meshes: [mesh2], quaternion, distance: 5 },
+            ])
+            timeSkip()
+
+            goForward()
+            timeSkip()
+
             expect(camera.position.toArray()).toBeCloseToArray([0, 0, 10])
             expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
         })
     })
 
-    it("moves camera to new pose after setItinerary and wheel navigation with a real mesh", () => {
+    it("moves camera with a different target rotation", () => {
         const mesh1 = createMesh([0, 0, 0])
         const mesh2 = createMesh([10, 0, 0])
         const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
@@ -173,75 +220,47 @@ describe("TourControls", () => {
             { meshes: [mesh1], quaternion, distance: 5 },
             { meshes: [mesh2], quaternion, distance: 5 },
         ])
-        domElement.dispatchEvent(wheelUpEvent)
-        vi.runAllTimers()
-        controls.update(Infinity)
+        timeSkip()
+
+        goForward()
+
         expect(camera.position.toArray()).toBeCloseToArray([15, 0, 0])
         expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0.707, 0, 0.707])
     })
 
-    it("dispatches 'navigate' event on navigation", () => {
-        const mesh = createMesh([20, 0, 0])
-        const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
-        const listener = vi.fn()
-        controls.addEventListener("navigate", listener)
-        controls.setItinerary([{ meshes: [mesh], quaternion, distance: 5 }])
-        domElement.dispatchEvent(wheelUpEvent)
-        vi.runAllTimers()
-        controls.update(Infinity)
-        expect(listener).toHaveBeenCalled()
-    })
-
-    it("does not move camera when controls are disabled", () => {
-        const mesh = createMesh([0, 0, 0])
-        const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
-        controls.enabled = false
-        controls.setItinerary([{ meshes: [mesh], quaternion, distance: 5 }])
-        domElement.dispatchEvent(wheelUpEvent)
-        vi.runAllTimers()
-        controls.update(Infinity)
-        expect(camera.position.toArray()).toBeCloseToArray([0, 0, 10])
-        expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
-    })
-
     it("does not move camera when transitioning", () => {
-        const mesh = createMesh([0, 0, 0])
-        const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
-        controls.setItinerary([{ meshes: [mesh], quaternion, distance: 5 }])
-        controls["transitioning"] = true
-        domElement.dispatchEvent(wheelUpEvent)
-        vi.runAllTimers()
-        expect(camera.position.toArray()).toBeCloseToArray([0, 0, 10])
-        expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
-    })
-
-    it("handles detour navigation and exit", () => {
-        const mesh1 = createMesh([30, 0, 0])
-        const mesh2 = createMesh([40, 0, 0])
-        const quaternion1 = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), 0)
-        const quaternion2 = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
+        const mesh1 = createMesh([0, 0, 0])
+        const mesh2 = createMesh([10, 0, 0])
+        const quaternion = new Quaternion(0, 0, 0, 1)
         controls.setItinerary([
-            { meshes: [mesh1], quaternion: quaternion1, distance: 5 },
-            { meshes: [mesh2], quaternion: quaternion2, distance: 5 },
+            { meshes: [mesh1], quaternion, distance: 5 },
+            { meshes: [mesh2], quaternion, distance: 5 },
         ])
-        const detourMesh = createMesh([50, 0, 0])
-        const detourQuat = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI)
-        controls["detourExitStrategy"] = "next"
-        controls.detour({ meshes: [detourMesh], quaternion: detourQuat, distance: 5 })
-        vi.runAllTimers()
-        controls.update(Infinity)
-        expect(camera.position.toArray()).toBeCloseToArray([50, 0, -5])
-        expect(camera.quaternion.toArray()).toBeCloseToArray([0, 1, 0, 0])
-        domElement.dispatchEvent(wheelDownEvent)
-        vi.runAllTimers()
-        controls.update(Infinity)
-        expect(camera.position.toArray()).toBeCloseToArray([30, 0, 5])
+        timeSkip()
+
+        controls["transitioning"] = true
+        goForward()
+
+        expect(camera.position.toArray()).toBeCloseToArray([0, 0, 5])
+        expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
+
+        controls["transitioning"] = false
+        goForward()
+
+        expect(camera.position.toArray()).toBeCloseToArray([10, 0, 5])
         expect(camera.quaternion.toArray()).toBeCloseToArray([0, 0, 0, 1])
     })
 
-    it("throws or ignores invalid input (invalid mesh)", () => {
+    it("throws if a location's meshes are empty", () => {
+        const quaternion = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 2)
+        expect(() => {
+            controls.setItinerary([{ meshes: [], quaternion, distance: 1 }])
+        }).toThrow("Location must contain at least one mesh")
+    })
+
+    it("throws if a location's meshes are invalid", () => {
         expect(() => {
             controls.setItinerary([{ meshes: [null as any], quaternion: new Quaternion(), distance: 1 }])
-        }).toThrow()
+        }).toThrow("Location contains an invalid mesh")
     })
 })

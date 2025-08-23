@@ -120,7 +120,7 @@ export class TrackedHistory<T> extends TypedEventTarget<TrackedHistoryEventMap<T
             return
         }
 
-        this.tracker = 0
+        this.tracker = this.MIN_TRACK
 
         this.dispatchTrackChanged()
     }
