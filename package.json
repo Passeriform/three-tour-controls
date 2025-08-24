@@ -1,6 +1,6 @@
 {
     "name": "@passeriform/three-tour-controls",
-    "version": "0.1.11",
+    "version": "0.1.12",
     "description": "Camera controller for navigating through a sequence of framed views with smooth scroll-based transitions.",
     "author": "Utkarsh Bhardwaj (Passeriform) <bhardwajutkarsh.ub@gmail.com>",
     "license": "MIT",
