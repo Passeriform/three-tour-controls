@@ -190,11 +190,19 @@ class TourControls<T extends Mesh> extends Controls<TourControlsEventMap<T>> {
     }
 
     detour(location: MeshPose<T>) {
-        if (equalsArray(location.meshes, this.detourLocations[this.detourLocations.length - 1]?.meshes ?? [])) {
+        const currentSeek = this.detourHistory.getSeek()
+
+        if (currentSeek !== undefined && equalsArray(location.meshes, this.detourLocations[currentSeek]!.meshes)) {
             return
         }
 
-        this.detourLocations.splice(this.detourHistory.getSeek()! + 1, this.detourLocations.length, location)
+        // TODO: Move dependent arrays into single tracked history
+
+        this.detourLocations.splice(
+            currentSeek === undefined ? 0 : currentSeek + 1,
+            this.detourLocations.length,
+            location,
+        )
         this.detourHistory.push(this.computePose(location))
 
         this.dispatchEvent({ type: "detourStart" })
