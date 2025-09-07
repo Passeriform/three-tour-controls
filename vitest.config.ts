@@ -1,11 +1,9 @@
-import { configDefaults, defineConfig } from "vitest/config"
+import { configDefaults, defineConfig, mergeConfig } from "vitest/config"
+import viteConfig from "./vite.config.mts"
 
 export default defineConfig({
     test: {
         environment: "jsdom",
-        setupFiles: "./lib/setupTests.ts",
-        fakeTimers: {
-            toFake: [...(configDefaults.fakeTimers.toFake ?? []), "performance"],
-        },
+        setupFiles: "./setupTests.ts",
     },
 })

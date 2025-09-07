@@ -3,7 +3,7 @@ import type TourControls from "./TourControls"
 
 export type TourControlsEventMap<T extends Mesh> = {
     navigate: {
-        location: T[] | undefined
+        location: T[]
     }
     transitionChange: {
         transitioning: boolean

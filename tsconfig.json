@@ -34,8 +34,7 @@
         "skipLibCheck": true,
 
         /* Types */
-        "types": ["vite/client", "vitest/globals"],
-
+        "types": ["vite/client"]
     },
-    "include": ["lib"]
+    "include": ["lib", "vitest.d.ts"]
 }
